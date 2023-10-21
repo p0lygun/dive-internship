@@ -115,6 +115,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # settings defined by developer
 
+LOGIN_URL = 'token_obtain_pair'
 
 AUTH_USER_MODEL = "accounts.CustomUser"
 
@@ -123,6 +124,9 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
     'PAGE_SIZE': 10
 }
 
