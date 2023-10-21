@@ -34,7 +34,9 @@ class AccountsConfig(AppConfig):
                             group_permissions.append(permission)
                     group.permissions.set(group_permissions)
                 else:
+                    # todo: add all perms if not on group.
                     logger.info(f'{group} Exists')
 
-
+            # register signals
+            from .signals import handlers  # just importing is fine
 
