@@ -72,6 +72,51 @@ class UserDetailView(UserBaseView, GenericAPIView):
 
     def patch(self, request, pk):
         user = self.get_user(pk)
+        set_manager = request.data.pop('manager', None)
+        if set_manager:
+            if permissions.is_in_group(request.user, "admin"):
+                if user:
+                    user.groups.clear()
+                    Group.objects.get(name="manager").user_set.add(user)
+                else:
+                    try:
+                        managers = Group.objects.get(name="manager").user_set
+                        user = managers.get(pk=pk)
+                    except django.core.exceptions.ObjectDoesNotExist:
+                        pass
+            else:
+                return Response(
+                    {
+                        "status": "fail",
+                        "set_manager": "You are not authorized to perform that operation"
+                    },
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+        if set_manager is False:
+            managers = Group.objects.get(name="manager").user_set
+            try:
+                user = managers.get(pk=pk)
+            except django.core.exceptions.ObjectDoesNotExist:
+                return Response(
+                    {
+                        "status": "fail",
+                        "message": f"User with Id: {pk} not found"
+                    },
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            if permissions.is_in_group(request.user, "admin"):
+                user.groups.clear()
+                Group.objects.get(name="normal").user_set.add(user)
+            else:
+                return Response(
+                    {
+                        "status": "fail",
+                        "make_manager": "You are not authorized to perform that operation"
+                    },
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+
         if user is None:
             return Response(
                 {
@@ -99,3 +144,5 @@ class UserDetailView(UserBaseView, GenericAPIView):
 
         user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
