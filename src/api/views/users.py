@@ -1,4 +1,5 @@
 import django.core.exceptions
+from django.db.models.query import Q
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 
@@ -15,8 +16,13 @@ class UserBaseView(APIView):
     model = get_user_model()
     permission_classes = [permissions.HasGroupPermission]
     allowed_groups = ['manager', 'admin']
-    queryset = Group.objects.get(name="normal").user_set.all()
     serializer_class = serializers.UserSerializer
+
+    def get_queryset(self):
+        if permissions.is_in_group(self.request.user, "admin"):
+            return self.model.objects.filter(~Q(groups__name="admin"))
+
+        return Group.objects.get(name="normal").user_set.all()
 
 
 class UserView(UserBaseView, ListAPIView):
@@ -48,7 +54,7 @@ class UserDetailView(UserBaseView, GenericAPIView):
 
     def get_user(self, pk) -> models.CustomUser | None:
         try:
-            return self.queryset.get(pk=pk)
+            return self.get_queryset().get(pk=pk)
         except django.core.exceptions.ObjectDoesNotExist:
             return None
 
@@ -72,18 +78,19 @@ class UserDetailView(UserBaseView, GenericAPIView):
 
     def patch(self, request, pk):
         user = self.get_user(pk)
+        if user is None:
+            return Response(
+                {
+                    "status": "fail",
+                    "message": f"User with Id: {pk} not found"
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
         set_manager = request.data.pop('manager', None)
         if set_manager:
             if permissions.is_in_group(request.user, "admin"):
-                if user:
-                    user.groups.clear()
-                    Group.objects.get(name="manager").user_set.add(user)
-                else:
-                    try:
-                        managers = Group.objects.get(name="manager").user_set
-                        user = managers.get(pk=pk)
-                    except django.core.exceptions.ObjectDoesNotExist:
-                        pass
+                user.groups.clear()
+                Group.objects.get(name="manager").user_set.add(user)
             else:
                 return Response(
                     {
@@ -93,18 +100,6 @@ class UserDetailView(UserBaseView, GenericAPIView):
                     status=status.HTTP_401_UNAUTHORIZED
                 )
         if set_manager is False:
-            managers = Group.objects.get(name="manager").user_set
-            try:
-                user = managers.get(pk=pk)
-            except django.core.exceptions.ObjectDoesNotExist:
-                return Response(
-                    {
-                        "status": "fail",
-                        "message": f"User with Id: {pk} not found"
-                    },
-                    status=status.HTTP_404_NOT_FOUND
-                )
-
             if permissions.is_in_group(request.user, "admin"):
                 user.groups.clear()
                 Group.objects.get(name="normal").user_set.add(user)
@@ -116,15 +111,6 @@ class UserDetailView(UserBaseView, GenericAPIView):
                     },
                     status=status.HTTP_401_UNAUTHORIZED
                 )
-
-        if user is None:
-            return Response(
-                {
-                    "status": "fail",
-                    "message": f"User with Id: {pk} not found"
-                },
-                status=status.HTTP_404_NOT_FOUND
-            )
 
         serializer = serializers.SignupSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
