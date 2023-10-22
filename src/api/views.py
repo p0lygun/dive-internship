@@ -1,11 +1,11 @@
 import django.core.exceptions
 from rest_framework.views import Response, status
-from rest_framework.generics import GenericAPIView
+from rest_framework.generics import GenericAPIView, ListAPIView
 
 from . import models, serializers, permissions
 
 
-class EntryItemBaseView(GenericAPIView):
+class EntryItemBaseView:
     model = models.Entry
     permission_classes = [permissions.HasGroupPermission]
     allowed_groups = ['normal', 'admin']
@@ -13,24 +13,22 @@ class EntryItemBaseView(GenericAPIView):
     queryset = models.Entry.objects.all()
 
 
-class EntryItemView(EntryItemBaseView):
+class EntryItemView(EntryItemBaseView, ListAPIView):
 
-    def get(self, request):
-        if permissions.is_in_group(request.user, "admin"):
-            entries_serialized = self.serializer(self.queryset, many=True)
-        else:
-            entries_serialized = serializers.EntrySerializerForUser(
-                self.queryset.filter(owner=request.user), many=True
-            )
+    def get_serializer_class(self):
+        if permissions.is_in_group(self.request.user, "admin"):
+            return self.serializer
 
-        response_data = {
-            'entries': entries_serialized.data
-        }
+        return serializers.EntrySerializerForUser
 
-        return Response(
-            response_data,
-            status=status.HTTP_200_OK
-        )
+    def get_queryset(self):
+        user = self.request.user
+        entries = self.queryset
+
+        if permissions.is_in_group(user, "normal"):
+            entries = self.queryset.filter(owner=user)
+
+        return entries
 
     def post(self, request):
         data = request.data

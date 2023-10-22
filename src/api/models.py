@@ -12,5 +12,8 @@ class Entry(models.Model):
         null=True
     )
 
+    class Meta:
+        ordering = ['-id']
+
     def __str__(self):
         return self.description[0:20]
