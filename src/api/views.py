@@ -1,9 +1,11 @@
 from rest_framework.views import APIView, Response, status
 
-from . import models, serializers
+from . import models, serializers, permissions
 
 
 class EntryItemView(APIView):
+    permission_classes = [permissions.HasGroupPermission]
+    allowed_groups = ['normal', 'admin']
 
     def get(self, request):
         qs = models.Entry.objects.all()
