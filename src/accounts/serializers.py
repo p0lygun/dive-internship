@@ -6,7 +6,7 @@ from rest_framework import serializers
 class SignupSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
-        fields = ("id", "username", "password",)
+        fields = ("id", "username", "password", "calories_per_day")
         extra_kwargs = {
             'password': {'write_only': True}
         }
@@ -28,5 +28,5 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = get_user_model()
-        fields = ["id", "username"]
+        fields = ["id", "username", "calories_per_day"]
 
