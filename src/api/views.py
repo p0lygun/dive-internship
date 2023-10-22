@@ -4,16 +4,18 @@ from rest_framework.generics import GenericAPIView
 from . import models, serializers, permissions
 
 
-class EntryItemView(GenericAPIView):
+class EntryItemBaseView:
     permission_classes = [permissions.HasGroupPermission]
     allowed_groups = ['normal', 'admin']
-
     serializer = serializers.EntrySerializer
     queryset = models.Entry.objects.all()
 
+
+class EntryItemView(EntryItemBaseView, GenericAPIView):
+
     def get(self, request):
         if permissions.is_in_group(request.user, "admin"):
-            entries_serialized = serializers.EntrySerializer(self.queryset, many=True)
+            entries_serialized = self.serializer(self.queryset, many=True)
         else:
             entries_serialized = serializers.EntrySerializerForUser(
                 self.queryset.filter(owner=request.user), many=True
