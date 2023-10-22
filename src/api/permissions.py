@@ -21,10 +21,10 @@ class HasGroupPermission(permissions.BasePermission):
         # Get a mapping of methods -> required group.
         allowed_groups = getattr(view, "allowed_groups", [])
 
-        # return true is use in group or is staff
+        # return true is use in group
         return any(
             [
                 is_in_group(request.user, group_name)
                 if group_name != "__all__" else True
                 for group_name in allowed_groups
-            ]) or (request.user and request.user.is_staff)
+            ])
