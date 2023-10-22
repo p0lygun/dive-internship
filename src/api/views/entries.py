@@ -1,4 +1,7 @@
+import requests
+import os
 import django.core.exceptions
+from loguru import logger
 from rest_framework.views import Response, status
 from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView, ListAPIView
@@ -31,16 +34,47 @@ class EntryItemView(EntryItemBaseView, ListAPIView):
         return entries
 
     def post(self, request):
+        data: dict
         data = request.data
         data['owner'] = request.user.id
+        if data.get('calories', False) is False:
+            data['calories'] = 0
         serializer = self.get_serializer(data=data)
         if serializer.is_valid():
+            if serializer.validated_data['calories'] == 0:
+                # todo : Ideally we should use a framework like celery to off load tasks
+                api_client_id = os.getenv('NUTRITIONIX_CLIENT_ID', False)
+                api_key = os.getenv('NUTRITIONIX_API_KEY', False)
+
+                if api_key is False:
+                    logger.warning("NUTRITIONIX_API_KEY is missing, skipping api call, set calories manually")
+
+                if api_client_id is False:
+                    logger.warning("NUTRITIONIX_CLIENT_ID is missing, skipping api call, set calories manually")
+
+                headers = {
+                    'x-app-id': api_client_id,
+                    'x-app-key': api_key,
+                    'x-remote-user-id': str(0)  # for dev env
+                }
+                api_resp = requests.post(
+                    'https://trackapi.nutritionix.com/v2/natural/nutrients',
+                    headers=headers,
+                    data={
+                        "query": data['description']
+                    }
+                )
+                if api_resp.status_code == 200:
+                    foods = api_resp.json().get('foods', None)
+                    if foods and len(foods):
+                        food = foods[0]
+                        serializer.validated_data['calories'] = food.get('nf_calories', 0)
             serializer.save()
             return Response(
                 {
                     "status": "success",
                     "data": {
-                        "entry": data
+                        "entry": serializer.validated_data
                     }
                 },
                 status=status.HTTP_201_CREATED
