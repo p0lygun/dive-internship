@@ -1,21 +1,22 @@
-from rest_framework.views import APIView, Response, status
+from rest_framework.views import Response, status
+from rest_framework.generics import GenericAPIView
 
 from . import models, serializers, permissions
 
 
-class EntryItemView(APIView):
+class EntryItemView(GenericAPIView):
     permission_classes = [permissions.HasGroupPermission]
     allowed_groups = ['normal', 'admin']
 
-    def get(self, request):
-        qs = models.Entry.objects.all()
+    serializer = serializers.EntrySerializer
+    queryset = models.Entry.objects.all()
 
-        # todo: check for admin permission and 404 for "manager" kind user
-        if request.user.is_superuser:
-            entries_serialized = serializers.EntrySerializer(qs, many=True)
+    def get(self, request):
+        if permissions.is_in_group(request.user, "admin"):
+            entries_serialized = serializers.EntrySerializer(self.queryset, many=True)
         else:
             entries_serialized = serializers.EntrySerializerForUser(
-                qs.filter(owner=request.user), many=True
+                self.queryset.filter(owner=request.user), many=True
             )
 
         response_data = {
@@ -26,6 +27,31 @@ class EntryItemView(APIView):
             response_data,
             status=status.HTTP_200_OK
         )
+
+    def post(self, request):
+        data = request.data
+        data['owner'] = request.user.id
+        serializer = self.serializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {
+                    "status": "success",
+                    "data": {
+                        "entry": data
+                    }
+                },
+                status=status.HTTP_201_CREATED
+            )
+        else:
+            return Response(
+                {
+                    "status": "fail",
+                    "message": serializer.errors
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
 
 
 
