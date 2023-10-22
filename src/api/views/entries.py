@@ -3,7 +3,7 @@ from rest_framework.views import Response, status
 from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView, ListAPIView
 
-from . import models, serializers, permissions
+from .. import models, serializers, permissions
 
 
 class EntryItemBaseView(APIView):
