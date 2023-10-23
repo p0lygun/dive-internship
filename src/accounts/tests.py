@@ -1,10 +1,16 @@
 from django.urls import reverse
 from rest_framework import status
 
-from helper.tests import TestCaseBase
+from helper.tests import TestCaseBase, set_up_data
 
 
 class LoginTestClass(TestCaseBase):
+    users = dict()
+
+    @classmethod
+    def setUpTestData(cls):
+        set_up_data(cls)
+
     url = reverse('check_login')
 
     def test_no_auth(self):
@@ -14,12 +20,12 @@ class LoginTestClass(TestCaseBase):
         )
 
     def test_auth(self):
-        response = self.client.get(self.url, **self.bearer_token)
+        response = self.client.get(self.url, headers=self.bearer_token)
         valid_response_data = {
             "login": True,
             "user": {
                 "id": 1,
-                "username": "test_user",
+                "username": "test_normal_user",
                 "calories_per_day": 0
             }
         }

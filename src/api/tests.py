@@ -3,15 +3,21 @@ import os
 from django.urls import reverse
 from rest_framework import status
 
-from helper.tests import TestCaseBase, User
+from helper.tests import TestCaseBase, set_up_data
 
 
 class EntryCreationTest(TestCaseBase):
+    users = dict()
+
     url = reverse('entries')
     entry = {
         "description": "Milk",
         "calories": 122
     }
+
+    @classmethod
+    def setUpTestData(cls):
+        set_up_data(cls)
 
     def test_normal_user_create_entry(self):
         # print(os.environ)
@@ -21,7 +27,7 @@ class EntryCreationTest(TestCaseBase):
             headers=self.bearer_token
         )
 
-        assert response.status_code == status.HTTP_201_CREATED
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_manager_create_entry(self):
 
@@ -31,7 +37,7 @@ class EntryCreationTest(TestCaseBase):
             headers=self.manager_bearer_token
         )
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_admin_create_entry(self):
 
@@ -41,10 +47,15 @@ class EntryCreationTest(TestCaseBase):
             headers=self.admin_bearer_token
         )
 
-        assert response.status_code == status.HTTP_201_CREATED
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
 
 class CaloriesLogicTest(TestCaseBase):
+    users = dict()
+
+    @classmethod
+    def setUpTestData(cls):
+        set_up_data(cls)
 
     def test_setting_calories_per_day(self):
         normal_user_id = self.users['normal'].id
@@ -58,8 +69,8 @@ class CaloriesLogicTest(TestCaseBase):
             }
         )
 
-        assert response.status_code == 200
-        assert response.data['data']['entry']['calories_per_day'] == new_calories_per_day
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['data']['entry']['calories_per_day'], new_calories_per_day)
 
     def test_calories_per_day(self):
         calories_per_day = self.users['normal'].calories_per_day
@@ -77,7 +88,7 @@ class CaloriesLogicTest(TestCaseBase):
             data=entry
         )
 
-        assert response.status_code == status.HTTP_201_CREATED
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         entry_id = response.data['data']['entry']['id']
 
         # get entry
@@ -86,8 +97,8 @@ class CaloriesLogicTest(TestCaseBase):
             url,
             headers=self.bearer_token,
         )
-        assert response.status_code == status.HTTP_200_OK
-        assert is_under_total_calories == response.data['entry']['is_under_total_calories']
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['entry']['is_under_total_calories'], is_under_total_calories)
 
 
 
