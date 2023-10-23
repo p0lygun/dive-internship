@@ -3,7 +3,7 @@ import os
 from django.urls import reverse
 from rest_framework import status
 
-from helper.tests import TestCaseBase
+from helper.tests import TestCaseBase, User
 
 
 class EntryCreationTest(TestCaseBase):
@@ -42,3 +42,52 @@ class EntryCreationTest(TestCaseBase):
         )
 
         assert response.status_code == status.HTTP_201_CREATED
+
+
+class CaloriesLogicTest(TestCaseBase):
+
+    def test_setting_calories_per_day(self):
+        normal_user_id = self.users['normal'].id
+        url = reverse('api-users-detail', args=str(normal_user_id,))
+        new_calories_per_day = 100
+        response = self.client.patch(
+            url,
+            headers=self.manager_bearer_token,
+            data={
+                "calories_per_day": new_calories_per_day
+            }
+        )
+
+        assert response.status_code == 200
+        assert response.data['data']['entry']['calories_per_day'] == new_calories_per_day
+
+    def test_calories_per_day(self):
+        calories_per_day = self.users['normal'].calories_per_day
+
+        url = reverse('entries')
+        # add entry
+        entry = {
+            "description": "Milk",
+            "calories": 122
+        }
+        is_under_total_calories = calories_per_day > entry['calories']
+        response = self.client.post(
+            url,
+            headers=self.bearer_token,
+            data=entry
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        entry_id = response.data['data']['entry']['id']
+
+        # get entry
+        url = reverse('entry-detail', args=(str(entry_id),))
+        response = self.client.get(
+            url,
+            headers=self.bearer_token,
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert is_under_total_calories == response.data['entry']['is_under_total_calories']
+
+
+

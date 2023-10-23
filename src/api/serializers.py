@@ -4,7 +4,6 @@ from django.db.models import Q
 from rest_framework import serializers
 from .models import Entry
 
-from accounts.serializers import UserSerializer
 if TYPE_CHECKING:
     from accounts.models import CustomUser
 

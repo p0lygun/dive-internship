@@ -1,6 +1,7 @@
 import requests
 import os
 import django.core.exceptions
+from django.contrib.auth import get_user_model
 from loguru import logger
 from rest_framework.views import Response, status
 from rest_framework.views import APIView
@@ -69,7 +70,7 @@ class EntryItemView(EntryItemBaseView, ListAPIView):
                     if foods and len(foods):
                         food = foods[0]
                         serializer.validated_data['calories'] = food.get('nf_calories', 0)
-            serializer.save()
+            serializer.save(owner=get_user_model().objects.get(pk=data['owner']))
             return Response(
                 {
                     "status": "success",
@@ -133,7 +134,7 @@ class EntryItemDetailView(EntryItemBaseView, GenericAPIView):
         serializer = self.get_serializer(entry, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response({"status": "success", "data": {"note": serializer.data}})
+            return Response({"status": "success", "data": {"entry": serializer.data}})
         return Response({"status": "fail", "message": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):

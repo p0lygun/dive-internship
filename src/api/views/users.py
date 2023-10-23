@@ -86,7 +86,8 @@ class UserDetailView(UserBaseView, GenericAPIView):
                 },
                 status=status.HTTP_404_NOT_FOUND
             )
-        set_manager = request.data.pop('manager', None)
+        data = request.data.copy()
+        set_manager = data.pop('manager', None)
         if set_manager:
             if permissions.is_in_group(request.user, "admin"):
                 user.groups.clear()
@@ -115,7 +116,7 @@ class UserDetailView(UserBaseView, GenericAPIView):
         serializer = serializers.SignupSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response({"status": "success", "data": {"note": serializer.data}})
+            return Response({"status": "success", "data": {"entry": serializer.data}})
         return Response({"status": "fail", "message": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
