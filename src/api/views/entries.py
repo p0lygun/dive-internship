@@ -35,7 +35,7 @@ class EntryItemView(EntryItemBaseView, ListAPIView):
 
     def post(self, request):
         data: dict
-        data = request.data
+        data = request.data.copy()
         data['owner'] = request.user.id
         if data.get('calories', False) is False:
             data['calories'] = 0
@@ -74,7 +74,7 @@ class EntryItemView(EntryItemBaseView, ListAPIView):
                 {
                     "status": "success",
                     "data": {
-                        "entry": serializer.validated_data
+                        "entry": serializer.data
                     }
                 },
                 status=status.HTTP_201_CREATED

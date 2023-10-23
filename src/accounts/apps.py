@@ -9,7 +9,7 @@ class AccountsConfig(AppConfig):
     name = 'accounts'
 
     def ready(self):
-        if os.environ.get('RUN_MAIN'):
+        if os.environ.get('RUN_MAIN', False) or os.environ.get('RUN_TESTS', False):
             logger.info("Setting up accounts app config....")
 
             from django.contrib.auth.models import Group

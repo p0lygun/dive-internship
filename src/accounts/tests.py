@@ -1,7 +1,7 @@
 from django.urls import reverse
 from rest_framework import status
 
-from ..helper.tests import TestCaseBase
+from helper.tests import TestCaseBase
 
 
 class LoginTestClass(TestCaseBase):
@@ -19,7 +19,8 @@ class LoginTestClass(TestCaseBase):
             "login": True,
             "user": {
                 "id": 1,
-                "username": "test_user"
+                "username": "test_user",
+                "calories_per_day": 0
             }
         }
         self.assertEqual(response.status_code, status.HTTP_200_OK)
